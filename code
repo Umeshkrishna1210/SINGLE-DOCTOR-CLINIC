@@ -1,0 +1,56 @@
+const handleOpenPrescriptionModal = async (appointment) => {
+    if (!appointment || !token) return;
+
+    setIsLoadingPrescriptionCheck(true); // Indicate loading
+    setSelectedAppointmentForPrescription({ // Keep basic appointment info
+        id: appointment.id,
+        patient_id: appointment.patient_id,
+        patientName: appointment.patientName,
+        appointment_date: appointment.appointment_date
+    });
+    setPrescriptionDataForModal(null); // Reset previous data
+
+    try {
+      // Fetch existing prescription data
+      const response = await axios.get(
+        `http://localhost:5000/medical-records/for-patient/${appointment.patient_id}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      // If successful (200 OK), store the fetched data
+      console.log("Existing prescription found:", response.data);
+      setPrescriptionDataForModal(response.data); // Contains { recordId, diagnosisNotes, medications }
+
+    } catch (err) {
+      if (err.response && err.response.status === 404) {
+        // 404 means no prescription exists, which is fine - proceed in "Add" mode
+        console.log("No existing prescription found for patient:", appointment.patient_id);
+        setPrescriptionDataForModal(null); // Ensure it's null for "Add" mode
+      } else {
+        // Handle other errors (e.g., network, server error)
+        console.error("Error checking for existing prescription:", err);
+        alert("Could not check for existing prescription. Please try again.");
+        setIsLoadingPrescriptionCheck(false);
+        return; // Don't open the modal on error
+      }
+    }
+
+    setIsLoadingPrescriptionCheck(false); // Done loading
+    setIsPrescriptionModalOpen(true); // Open the modal
+  };
+
+
+  // Handler to close the prescription modal
+  const closePrescriptionModal = () => {
+      setIsPrescriptionModalOpen(false);
+      setSelectedAppointmentForPrescription(null);
+      setPrescriptionDataForModal(null); // Clear fetched data when closing
+  };
+
+
+
+
+    db.query(upsertSql, params, (errUpsert, result) => {
+        if (errUpsert) {
+            console.error(`DB Error (Upsert Prescription):`, errUpsert);
+            return res.status(500).json({ error: `Failed to save or update prescription.` });
+        }
