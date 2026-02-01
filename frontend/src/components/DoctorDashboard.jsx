@@ -119,56 +119,35 @@ function DoctorDashboard() {
 
   // --- UPDATED: Prescription Handling ---
 
-  const handleOpenPrescriptionModal = (appointment) => {
+  const handleOpenPrescriptionModal = async (appointment) => {
     if (!appointment || !token) return;
 
+    setIsLoadingPrescriptionCheck(true);
     setSelectedAppointmentForPrescription({
       id: appointment.id,
       patient_id: appointment.patient_id,
       patientName: appointment.patientName,
       appointment_date: appointment.appointment_date
     });
-    setIsPrescriptionModalOpen(true);
     setPrescriptionDataForModal(null);
     setPatientRecordsForPrescription([]);
 
-    fetchExistingPrescription(appointment.patient_id);
-    fetchPatientRecords(appointment.patient_id);
-  };
-
-  const fetchPatientRecords = async (patientId) => {
     try {
-      const res = await axios.get(`http://localhost:5000/patient/profile-and-records/${patientId}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      setPatientRecordsForPrescription(res.data.records || []);
+      // Fetch prescription and records BEFORE opening modal so form is pre-filled
+      const [prescRes, recordsRes] = await Promise.all([
+        axios.get(`http://localhost:5000/medical-records/for-patient/${appointment.patient_id}`, { headers: { Authorization: `Bearer ${token}` } }).catch(e => ({ response: { status: e.response?.status || 404 } })),
+        axios.get(`http://localhost:5000/patient/profile-and-records/${appointment.patient_id}`, { headers: { Authorization: `Bearer ${token}` } }).catch(() => ({ data: { records: [] } }))
+      ]);
+      setPrescriptionDataForModal(prescRes.response?.status === 404 ? null : prescRes.data);
+      setPatientRecordsForPrescription(recordsRes.data?.records || []);
     } catch (err) {
+      setPrescriptionDataForModal(null);
       setPatientRecordsForPrescription([]);
+    } finally {
+      setIsLoadingPrescriptionCheck(false);
+      setIsPrescriptionModalOpen(true); // Open modal AFTER data is loaded
     }
   };
-
-  const fetchExistingPrescription = async (patientId) => {
-    try {
-      const res = await axios.get(
-        `http://localhost:5000/medical-records/for-patient/${patientId}`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-
-      // UPDATE mode → auto-fill form
-      setPrescriptionDataForModal(res.data);
-
-    } catch (err) {
-      if (err.response?.status === 404) {
-        // ADD mode → do nothing (this is NORMAL)
-        console.log("No existing prescription, opening empty form");
-      } else {
-        // Log error silently — DO NOT BLOCK UI
-        console.warn("Prescription fetch failed:", err);
-      }
-    }
-  };
-
-
 
   // Handler to close the prescription modal
   const closePrescriptionModal = () => {
@@ -266,15 +245,19 @@ function DoctorDashboard() {
                        </span>
                      </p>
                   </div>
-                  {/* Add/Update Prescription Button */}
-                  <div className="flex-shrink-0 flex mt-2 sm:mt-0">
+                  {/* Add/Update/Edit Prescription Button */}
+                  <div className="flex-shrink-0 flex mt-2 sm:mt-0 gap-2">
                     <button
-                      onClick={() => handleOpenPrescriptionModal(appointment)} // Use the new handler
-                      className="bg-purple-600 hover:bg-purple-700 text-white px-3 py-1 rounded text-xs font-medium disabled:opacity-50"
-                      title="Add or Update Prescription"
-                      disabled={appointment.status === 'completed' || isLoadingPrescriptionCheck} // Disable while checking or if completed
+                      onClick={() => handleOpenPrescriptionModal(appointment)}
+                      className={`px-3 py-1 rounded text-xs font-medium disabled:opacity-50 ${
+                        appointment.status === 'completed'
+                          ? 'bg-amber-600 hover:bg-amber-700 text-white'
+                          : 'bg-purple-600 hover:bg-purple-700 text-white'
+                      }`}
+                      title={appointment.status === 'completed' ? 'Edit prescription (correct mistakes)' : 'Add or Update Prescription'}
+                      disabled={isLoadingPrescriptionCheck}
                     >
-                      {isLoadingPrescriptionCheck ? 'Checking...' : (appointment.status === 'completed' ? 'Prescribed' : 'Add/Update Prescription')}
+                      {isLoadingPrescriptionCheck ? 'Loading...' : (appointment.status === 'completed' ? 'Edit Prescription' : 'Add/Update Prescription')}
                     </button>
                   </div>
                 </li>

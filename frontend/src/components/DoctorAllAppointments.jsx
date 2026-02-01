@@ -198,15 +198,19 @@ function DoctorAllAppointments() {
                     </span>
                   </p>
                 </div>
-                {/* Add/Update Prescription Button */}
+                {/* Add/Update/Edit Prescription Button */}
                 <div className="flex-shrink-0 flex mt-2 sm:mt-0">
                   <button
-                    onClick={() => handleOpenPrescriptionModal(appointment)} // Use the new handler
-                    className="bg-purple-600 hover:bg-purple-700 text-white px-3 py-1 rounded text-sm font-medium disabled:opacity-50"
-                    title="Add or Update Prescription"
-                    disabled={appointment.status === 'completed' || isLoadingPrescriptionCheck} // Disable while checking or if completed
+                    onClick={() => handleOpenPrescriptionModal(appointment)}
+                    className={`px-3 py-1 rounded text-sm font-medium disabled:opacity-50 ${
+                      appointment.status === 'completed'
+                        ? 'bg-amber-600 hover:bg-amber-700 text-white'
+                        : 'bg-purple-600 hover:bg-purple-700 text-white'
+                    }`}
+                    title={appointment.status === 'completed' ? 'Edit prescription (correct mistakes)' : 'Add or Update Prescription'}
+                    disabled={isLoadingPrescriptionCheck}
                   >
-                    {isLoadingPrescriptionCheck ? 'Checking...' : (appointment.status === 'completed' ? 'Prescribed' : 'Add/Update Prescription')}
+                    {isLoadingPrescriptionCheck ? 'Loading...' : (appointment.status === 'completed' ? 'Edit Prescription' : 'Add/Update Prescription')}
                   </button>
                 </div>
               </li>
