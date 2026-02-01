@@ -50,11 +50,12 @@ router.get('/detailed-records', authMiddleware, async (req, res) => {
 
     try {
         const dbPromise = db.promise();
+        // Only patient-uploaded records (doctor_id IS NULL) - exclude doctor prescription records
         const [recordRows] = await dbPromise.query(
         `SELECT id, problem, previous_medications, medical_history,
                 prescriptions, lab_reports, created_at
          FROM medical_records
-         WHERE patient_id = ? 
+         WHERE patient_id = ? AND doctor_id IS NULL
          ORDER BY created_at DESC`,
         [patientId]
         );
@@ -115,11 +116,12 @@ router.get('/profile-and-records/:id', authMiddleware, async (req, res) => {
         }
         const profile = profileRows[0];
 
+        // Only patient-uploaded records (doctor_id IS NULL) - exclude doctor prescription records
         const [recordRows] = await dbPromise.query(
         `SELECT id, problem, previous_medications, medical_history,
                 prescriptions, lab_reports, created_at
          FROM medical_records
-         WHERE patient_id = ? 
+         WHERE patient_id = ? AND doctor_id IS NULL
          ORDER BY created_at DESC`,
         [patientId]
         );

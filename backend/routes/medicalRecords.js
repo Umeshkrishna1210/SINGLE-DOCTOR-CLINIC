@@ -180,7 +180,8 @@ router.get('/for-patient/:patientId', authMiddleware, (req, res) => { // Removed
     if (!patientId || isNaN(parseInt(patientId))) { return res.status(400).json({ error: "Valid patientId parameter is required." }); }
     console.log(`Fetching prescription for patient ID: ${patientId}`);
     
-    const sql = `SELECT id, diagnosis, prescriptions FROM medical_records WHERE patient_id = ? LIMIT 1`; // Limit 1 because of UNIQUE constraint
+    // Fetch doctor's prescription (doctor_id IS NOT NULL) - not patient uploads
+    const sql = `SELECT id, diagnosis, prescriptions FROM medical_records WHERE patient_id = ? AND doctor_id IS NOT NULL ORDER BY updated_at DESC LIMIT 1`;
     
     // Use db.query with callback
     db.query(sql, [patientId], (err, rows) => { 
