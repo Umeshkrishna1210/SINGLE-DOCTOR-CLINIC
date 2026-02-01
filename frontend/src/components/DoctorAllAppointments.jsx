@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import dayjs from 'dayjs';
+import { API_BASE } from '../config';
 import { Link } from 'react-router-dom'; // Keep if needed elsewhere, not used in this snippet
 import PatientDetailsModal from './PatientDetailsModal';
 import AddPrescriptionModal from './AddPrescriptionModal'; // Import the modal component
@@ -30,7 +31,7 @@ function DoctorAllAppointments() {
   const fetchAppointments = useCallback(async () => {
     if (!token) return; setIsLoading(true); setError('');
     try {
-      const res = await axios.get("http://localhost:5000/appointments", { headers: { Authorization: `Bearer ${token}` } });
+      const res = await axios.get(`${API_BASE}/appointments`, { headers: { Authorization: `Bearer ${token}` } });
       const sortedAppointments = res.data.sort((a, b) => dayjs(a.appointment_date).valueOf() - dayjs(b.appointment_date).valueOf());
       setAppointments(sortedAppointments);
     } catch (err) { console.error("Error fetching appointments:", err); setError("Failed to load appointments. Please try again."); }
@@ -45,7 +46,7 @@ function DoctorAllAppointments() {
     if (!patientId || !token) { console.error("Patient ID or token missing."); return; } // Added token check
     setSelectedPatientIdForDetails(patientId); setIsPatientModalOpen(true); setIsLoadingPatientModal(true); setPatientModalData({ profile: null, records: [] });
     try {
-      const response = await axios.get(`http://localhost:5000/patient/profile-and-records/${patientId}`, { headers: { Authorization: `Bearer ${token}` } });
+      const response = await axios.get(`${API_BASE}/patient/profile-and-records/${patientId}`, { headers: { Authorization: `Bearer ${token}` } });
       setPatientModalData({ profile: response.data.profile, records: response.data.records });
     } catch (err) { console.error("Error fetching patient details or records for modal:", err); setPatientModalData({ profile: null, records: [] }); alert(err.response?.data?.message || "Could not load patient details."); }
     finally { setIsLoadingPatientModal(false); }
@@ -74,8 +75,8 @@ function DoctorAllAppointments() {
 
     try {
       const [prescRes, recordsRes] = await Promise.all([
-        axios.get(`http://localhost:5000/medical-records/for-patient/${appointment.patient_id}`, { headers: { Authorization: `Bearer ${token}` } }).catch(e => ({ response: { status: 404 } })),
-        axios.get(`http://localhost:5000/patient/profile-and-records/${appointment.patient_id}`, { headers: { Authorization: `Bearer ${token}` } }).catch(() => ({ data: { records: [] } }))
+        axios.get(`${API_BASE}/medical-records/for-patient/${appointment.patient_id}`, { headers: { Authorization: `Bearer ${token}` } }).catch(e => ({ response: { status: 404 } })),
+        axios.get(`${API_BASE}/patient/profile-and-records/${appointment.patient_id}`, { headers: { Authorization: `Bearer ${token}` } }).catch(() => ({ data: { records: [] } }))
       ]);
       setPrescriptionDataForModal(prescRes.response?.status === 404 ? null : prescRes.data);
       setPatientRecordsForPrescription(recordsRes.data?.records || []);
@@ -105,7 +106,7 @@ function DoctorAllAppointments() {
       }
       try {
           const response = await axios.post(
-              'http://localhost:5000/medical-records/prescription',
+              `${API_BASE}/medical-records/prescription`,
               prescriptionData, // contains { patientId, appointmentId, diagnosis, medicationList }
               {
                   headers: { Authorization: `Bearer ${token}` }
