@@ -22,29 +22,29 @@ function AppointmentCalendar({ appointments = [], onDateSelect, onAppointmentCli
   const weekDays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 overflow-hidden">
-      <div className="flex justify-between items-center p-4 border-b dark:border-gray-700">
+    <div className="bg-white rounded-lg shadow border border-gray-200 overflow-hidden">
+      <div className="flex justify-between items-center p-4 border-b">
         <button
           type="button"
           onClick={() => setCurrentMonth(currentMonth.subtract(1, "month"))}
-          className="p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-700"
+          className="p-2 rounded hover:bg-gray-100"
           aria-label="Previous month"
         >
           ←
         </button>
-        <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-100">
+        <h3 className="text-lg font-semibold text-gray-800">
           {currentMonth.format("MMMM YYYY")}
         </h3>
         <button
           type="button"
           onClick={() => setCurrentMonth(currentMonth.add(1, "month"))}
-          className="p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-700"
+          className="p-2 rounded hover:bg-gray-100"
           aria-label="Next month"
         >
           →
         </button>
       </div>
-      <div className="grid grid-cols-7 text-center text-sm font-medium text-gray-600 dark:text-gray-400 border-b dark:border-gray-700">
+      <div className="grid grid-cols-7 text-center text-sm font-medium text-gray-600 border-b">
         {weekDays.map((wd) => (
           <div key={wd} className="py-2">
             {wd}
@@ -59,9 +59,9 @@ function AppointmentCalendar({ appointments = [], onDateSelect, onAppointmentCli
           return (
             <div
               key={d.format("YYYY-MM-DD")}
-              className={`min-h-[80px] p-2 border-b border-r dark:border-gray-700
-                ${!isCurrentMonth ? "bg-gray-50 dark:bg-gray-900/50 text-gray-400" : ""}
-                ${isToday ? "bg-blue-50 dark:bg-blue-900/20" : ""}`}
+              className={`min-h-[80px] p-2 border-b border-r
+                ${!isCurrentMonth ? "bg-gray-50 text-gray-400" : ""}
+                ${isToday ? "bg-blue-50" : ""}`}
             >
               <div
                 className={`text-sm font-medium mb-1 ${!isCurrentMonth ? "text-gray-400" : ""}`}
@@ -75,7 +75,7 @@ function AppointmentCalendar({ appointments = [], onDateSelect, onAppointmentCli
                     type="button"
                     onClick={() => onAppointmentClick?.(apt)}
                     className="block w-full text-left text-xs truncate px-1 py-0.5 rounded
-                      bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-200 hover:bg-blue-200 dark:hover:bg-blue-900/60"
+                      bg-blue-100 text-blue-800 hover:bg-blue-200"
                   >
                     {dayjs(apt.appointment_date).format("h:mm A")}
                     {apt.patientName ? ` - ${apt.patientName}` : ""}

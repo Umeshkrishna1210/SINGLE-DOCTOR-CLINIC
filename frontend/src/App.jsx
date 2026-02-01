@@ -1,6 +1,6 @@
 import React, { useContext, lazy, Suspense } from "react";
 import { Routes, Route, useLocation, Navigate } from "react-router-dom";
-import Navbar from "./components/Navbar";
+import NavBar from "./components/NavBar";
 import Sidebar from "./components/Sidebar";
 import Login from "./components/Login";
 import Register from "./components/Register";
@@ -44,7 +44,7 @@ function App() {
     <div className="flex flex-col h-screen">
       {/* Navbar always displayed at the top */}
       {/* Ensure Navbar has a defined height, e.g., className="h-16 ..." */}
-      <Navbar /> 
+      <NavBar /> 
       
       {/* Container for content below navbar */}
       {/* Uses Flexbox row layout (default for 'flex'), takes remaining vertical space (flex-1), prevents parent overflow */}
@@ -54,7 +54,7 @@ function App() {
         {/* Sidebar should have fixed width (e.g., w-60), full height (h-full), and flex-shrink-0 */}
         {showSidebar && <Sidebar />}
 
-        <main className="flex-grow p-6 overflow-y-auto bg-white dark:bg-gray-900">
+        <main className="flex-grow p-6 overflow-y-auto bg-white">
           <Suspense fallback={<div className="flex items-center justify-center p-12"><p className="text-gray-500">Loading...</p></div>}>
           <Routes>
             

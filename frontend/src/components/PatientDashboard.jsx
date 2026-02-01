@@ -135,7 +135,7 @@ function PatientDashboard() {
 
   const now = dayjs();
   const upcomingAppointments = appointments.filter((a) => dayjs(a.appointment_date).isAfter(now));
-  const pastAppointments = appointments.filter((a) => dayjs(a.appointment_date).isSameOrBefore(now));
+  const pastAppointments = appointments.filter((a) => !dayjs(a.appointment_date).isAfter(now));
 
   const filteredRecords = searchRecords
     ? detailedRecords.filter(
@@ -182,14 +182,14 @@ function PatientDashboard() {
       </div>
 
       {/* Calendar View */}
-      <section className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow-md border border-gray-200 dark:border-gray-700">
-        <h3 className="text-xl font-semibold mb-4 text-gray-700 dark:text-gray-200">Appointment Calendar</h3>
+      <section className="bg-white p-4 sm:p-6 rounded-lg shadow-md border border-gray-200">
+        <h3 className="text-xl font-semibold mb-4 text-gray-700">Appointment Calendar</h3>
         <AppointmentCalendar appointments={appointments} />
       </section>
 
       {/* Appointments Section */}
-      <section className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow-md border border-gray-200 dark:border-gray-700">
-        <h3 className="text-xl font-semibold mb-4 text-gray-700 dark:text-gray-200">Appointments</h3>
+      <section className="bg-white p-4 sm:p-6 rounded-lg shadow-md border border-gray-200">
+        <h3 className="text-xl font-semibold mb-4 text-gray-700">Appointments</h3>
         {/* Button to book new appointment */}
         <button
           onClick={handleBookAppointment}
@@ -198,9 +198,9 @@ function PatientDashboard() {
           Book New Appointment
         </button>
 
-        <h4 className="text-lg font-medium mb-3 text-gray-600 dark:text-gray-400">Upcoming</h4>
+        <h4 className="text-lg font-medium mb-3 text-gray-600">Upcoming</h4>
         {isLoadingAppointments ? (
-          <p className="text-gray-500 dark:text-gray-400">Loading appointments...</p>
+          <p className="text-gray-500">Loading appointments...</p>
         ) : upcomingAppointments.length > 0 ? (
           <ul className="space-y-3">
             {upcomingAppointments.map((appointment) => (
@@ -231,15 +231,15 @@ function PatientDashboard() {
             ))}
           </ul>
         ) : (
-          <p className="text-gray-500 dark:text-gray-400 italic">No upcoming appointments scheduled.</p>
+          <p className="text-gray-500 italic">No upcoming appointments scheduled.</p>
         )}
 
-        <h4 className="text-lg font-medium mt-6 mb-3 text-gray-600 dark:text-gray-400">Appointment History</h4>
+        <h4 className="text-lg font-medium mt-6 mb-3 text-gray-600">Appointment History</h4>
         {pastAppointments.length > 0 ? (
           <ul className="space-y-3">
             {pastAppointments.slice(0, 10).map((appointment) => (
-              <li key={appointment.id} className="flex flex-col sm:flex-row justify-between items-start sm:items-center border dark:border-gray-600 p-3 rounded shadow-sm bg-gray-50 dark:bg-gray-800">
-                <span className="font-medium text-gray-800 dark:text-gray-200">
+              <li key={appointment.id} className="flex flex-col sm:flex-row justify-between items-start sm:items-center border p-3 rounded shadow-sm bg-gray-50">
+                <span className="font-medium text-gray-800">
                   {dayjs(appointment.appointment_date).format("ddd, MMM D, YYYY - h:mm A")}
                 </span>
                 <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${appointment.status === "confirmed" ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-800"}`}>
@@ -250,7 +250,7 @@ function PatientDashboard() {
             {pastAppointments.length > 10 && <p className="text-sm text-gray-500">Showing last 10</p>}
           </ul>
         ) : (
-          <p className="text-gray-500 dark:text-gray-400 italic">No past appointments.</p>
+          <p className="text-gray-500 italic">No past appointments.</p>
         )}
       </section>
 
@@ -262,7 +262,7 @@ function PatientDashboard() {
         ) : prescriptionError ? (
           <p className="text-red-600 bg-red-100 p-3 rounded">{prescriptionError}</p>
         ) : prescription ? (
-          <div className="p-4 rounded-lg border border-gray-200 dark:border-gray-600 bg-blue-50 dark:bg-blue-900/20 print-prescription">
+          <div className="p-4 rounded-lg border border-gray-200 bg-blue-50 print-prescription">
             <button onClick={() => window.print()} className="no-print mb-2 text-sm text-blue-600 hover:underline">
               🖨️ Print Prescription
             </button>
@@ -324,10 +324,10 @@ function PatientDashboard() {
             placeholder="Search records..."
             value={searchRecords}
             onChange={(e) => setSearchRecords(e.target.value)}
-            className="border dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded px-3 py-1.5 text-sm w-48"
+            className="border rounded px-3 py-1.5 text-sm w-48"
           />
         </div>
-        <h4 className="text-lg font-medium mb-3 text-gray-600 dark:text-gray-400">Your Uploaded History</h4>
+        <h4 className="text-lg font-medium mb-3 text-gray-600">Your Uploaded History</h4>
         {isLoadingRecords ? (
           <p className="text-gray-500">Loading records history...</p>
         ) : recordsError ? (
@@ -427,7 +427,7 @@ function PatientDashboard() {
             ))}
           </ul>
         ) : (
-          <p className="text-gray-500 dark:text-gray-400 italic">
+          <p className="text-gray-500 italic">
             {searchRecords ? "No matching records found." : "No detailed medical records have been uploaded yet."}
           </p>
         )}

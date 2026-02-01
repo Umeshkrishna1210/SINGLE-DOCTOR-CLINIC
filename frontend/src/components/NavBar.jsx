@@ -1,11 +1,9 @@
 import React, { useContext } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { UserContext } from "../context/UserContext";
-import { ThemeContext } from "../context/ThemeContext";
 
 function Navbar() {
   const { user } = useContext(UserContext) || {};
-  const { dark, toggleTheme } = useContext(ThemeContext) || {}; // Use || {} for safety if context is momentarily undefined
   const navigate = useNavigate(); // Initialize navigate hook
 
   const { logout } = useContext(UserContext) || {};
@@ -38,9 +36,6 @@ function Navbar() {
             {user.role === "patient" && <Link to="/patient-dashboard" className="mr-4 hover:text-blue-200 transition-colors">Dashboard</Link>}
             {user.role === "doctor" && <Link to="/doctor-dashboard" className="mr-4 hover:text-blue-200 transition-colors">Dashboard</Link>}
             {user.role === "patient" && <Link to="/patient/settings" className="mr-4 hover:text-blue-200 transition-colors">Settings</Link>}
-            <button onClick={toggleTheme} className="mr-4 hover:text-blue-200 transition-colors" title={dark ? "Switch to light mode" : "Switch to dark mode"} aria-label="Toggle theme">
-              {dark ? "☀️" : "🌙"}
-            </button>
             <button 
                 onClick={handleLogout} 
                 className="bg-red-500 hover:bg-red-600 px-3 py-1 rounded text-white font-medium transition-colors"
