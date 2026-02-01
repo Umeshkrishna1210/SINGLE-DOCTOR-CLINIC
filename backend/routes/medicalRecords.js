@@ -219,6 +219,40 @@ router.get('/for-patient/:patientId', authMiddleware, (req, res) => { // Removed
 });
 
 
+// DELETE /medical-records/:id - Patient can delete their own medical records
+router.delete('/:id', authMiddleware, (req, res) => {
+    if (req.user.role !== 'patient') {
+        return res.status(403).json({ error: "Access denied. Patients only." });
+    }
+    const recordId = req.params.id;
+    const patientId = req.user.id;
+
+    if (!recordId || isNaN(parseInt(recordId))) {
+        return res.status(400).json({ error: "Invalid record ID." });
+    }
+
+    db.query("SELECT id, prescriptions, lab_reports FROM medical_records WHERE id = ? AND patient_id = ?", [recordId, patientId], (err, rows) => {
+        if (err) {
+            return res.status(500).json({ error: "Failed to delete record." });
+        }
+        if (rows.length === 0) {
+            return res.status(404).json({ error: "Record not found or you don't have permission to delete it." });
+        }
+
+        const record = rows[0];
+        const deleteQuery = "DELETE FROM medical_records WHERE id = ? AND patient_id = ?";
+        db.query(deleteQuery, [recordId, patientId], (delErr, result) => {
+            if (delErr) {
+                return res.status(500).json({ error: "Failed to delete record." });
+            }
+            if (result.affectedRows === 0) {
+                return res.status(404).json({ error: "Record not found." });
+            }
+            res.json({ message: "Medical record deleted successfully." });
+        });
+    });
+});
+
 // --- UPDATED: GET /medical-records/myprescriptions ---
 // --- Fetches the single prescription for the logged-in patient ---
 // --- Uses the 'medical_records' table ---
