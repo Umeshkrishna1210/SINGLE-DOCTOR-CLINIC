@@ -1,14 +1,14 @@
 -- ===================================
 -- MEDISYNC DATABASE SCHEMA (FIXED FOR ALL MySQL VERSIONS)
 -- ===================================
-SHOW databases;
+-- SHOW databases;
 -- DROP DATABASE IF EXISTS mediSyncDB;
 
-CREATE DATABASE IF NOT EXISTS mediSyncDB 
-CHARACTER SET utf8mb4 
-COLLATE utf8mb4_unicode_ci;
+-- CREATE DATABASE IF NOT EXISTS mediSyncDB 
+-- CHARACTER SET utf8mb4 
+-- COLLATE utf8mb4_unicode_ci;
 
-USE mediSyncDB;
+-- USE mediSyncDB;
 
 -- ===================================
 -- 1. USERS TABLE
@@ -112,12 +112,12 @@ CREATE TABLE IF NOT EXISTS doctor_schedule_settings (
 -- ===================================
 -- CLEAR EXISTING DATA
 -- ===================================
-TRUNCATE TABLE appointments;
-TRUNCATE TABLE blocked_days;
-TRUNCATE TABLE blocked_time_slots;
-TRUNCATE TABLE medical_records;
-DELETE FROM doctor_schedule_settings;
-DELETE FROM users;
+-- TRUNCATE TABLE appointments;
+-- TRUNCATE TABLE blocked_days;
+-- TRUNCATE TABLE blocked_time_slots;
+-- TRUNCATE TABLE medical_records;
+-- DELETE FROM doctor_schedule_settings;
+-- DELETE FROM users;
 
 -- ===================================
 -- SEED DATA
@@ -125,9 +125,9 @@ DELETE FROM users;
 
 -- Insert the single doctor
 -- Password: bcrypt hash of "doctor123"
-INSERT INTO users (id, name, email, password, role) 
-VALUES (1, 'Dr. Smith', 'doctor@clinic.com', '$2b$10$1234567890abcdefghijklmnopqrstuv', 'doctor');
+-- INSERT INTO users (id, name, email, password, role) 
+-- VALUES (1, 'Dr. Smith', 'doctor@clinic.com', '$2b$10$1234567890abcdefghijklmnopqrstuv', 'doctor');
 
 -- Insert doctor schedule settings (using VARCHAR instead of JSON)
-INSERT INTO doctor_schedule_settings (doctor_id, working_days) 
-VALUES (1, 'Mon,Tue,Wed,Thu,Fri');
+-- INSERT INTO doctor_schedule_settings (doctor_id, working_days) 
+-- VALUES (1, 'Mon,Tue,Wed,Thu,Fri');
