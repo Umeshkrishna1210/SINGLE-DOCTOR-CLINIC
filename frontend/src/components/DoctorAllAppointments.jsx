@@ -18,12 +18,11 @@ function DoctorAllAppointments() {
   const [patientModalData, setPatientModalData] = useState({ profile: null, records: [] });
   const [isLoadingPatientModal, setIsLoadingPatientModal] = useState(false);
 
-  // --- Prescription Modal State ---
   const [isPrescriptionModalOpen, setIsPrescriptionModalOpen] = useState(false);
   const [selectedAppointmentForPrescription, setSelectedAppointmentForPrescription] = useState(null);
-  const [prescriptionDataForModal, setPrescriptionDataForModal] = useState(null); // Holds existing data if found
-  const [isLoadingPrescriptionCheck, setIsLoadingPrescriptionCheck] = useState(false); // Loading state for checking
-  // --- End Prescription Modal State ---
+  const [prescriptionDataForModal, setPrescriptionDataForModal] = useState(null);
+  const [patientRecordsForPrescription, setPatientRecordsForPrescription] = useState([]);
+  const [isLoadingPrescriptionCheck, setIsLoadingPrescriptionCheck] = useState(false);
 
   const token = localStorage.getItem("token");
 
@@ -60,53 +59,42 @@ function DoctorAllAppointments() {
 
   // --- UPDATED: Prescription Handling ---
 
-  // Handler to fetch data and then open the prescription modal
   const handleOpenPrescriptionModal = async (appointment) => {
     if (!appointment || !token) return;
 
-    setIsLoadingPrescriptionCheck(true); // Indicate loading
-    setSelectedAppointmentForPrescription({ // Keep basic appointment info
+    setIsLoadingPrescriptionCheck(true);
+    setSelectedAppointmentForPrescription({
         id: appointment.id,
         patient_id: appointment.patient_id,
         patientName: appointment.patientName,
         appointment_date: appointment.appointment_date
     });
-    setPrescriptionDataForModal(null); // Reset previous data
+    setPrescriptionDataForModal(null);
+    setPatientRecordsForPrescription([]);
 
     try {
-      // Fetch existing prescription data
-      const response = await axios.get(
-        `http://localhost:5000/medical-records/for-patient/${appointment.patient_id}`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      // If successful (200 OK), store the fetched data
-      console.log("Existing prescription found:", response.data);
-      setPrescriptionDataForModal(response.data); // Contains { recordId, diagnosisNotes, medications }
-
+      const [prescRes, recordsRes] = await Promise.all([
+        axios.get(`http://localhost:5000/medical-records/for-patient/${appointment.patient_id}`, { headers: { Authorization: `Bearer ${token}` } }).catch(e => ({ response: { status: 404 } })),
+        axios.get(`http://localhost:5000/patient/profile-and-records/${appointment.patient_id}`, { headers: { Authorization: `Bearer ${token}` } }).catch(() => ({ data: { records: [] } }))
+      ]);
+      setPrescriptionDataForModal(prescRes.response?.status === 404 ? null : prescRes.data);
+      setPatientRecordsForPrescription(recordsRes.data?.records || []);
     } catch (err) {
-      if (err.response && err.response.status === 404) {
-        // 404 means no prescription exists, which is fine - proceed in "Add" mode
-        console.log("No existing prescription found for patient:", appointment.patient_id);
-        setPrescriptionDataForModal(null); // Ensure it's null for "Add" mode
-      } else {
-        // Handle other errors (e.g., network, server error)
-        console.error("Error checking for existing prescription:", err);
-        alert("Could not check for existing prescription. Please try again.");
-        setIsLoadingPrescriptionCheck(false);
-        return; // Don't open the modal on error
-      }
+      setPrescriptionDataForModal(null);
+      setPatientRecordsForPrescription([]);
+      alert("Could not load prescription data. Please try again.");
+    } finally {
+      setIsLoadingPrescriptionCheck(false);
+      setIsPrescriptionModalOpen(true);
     }
-
-    setIsLoadingPrescriptionCheck(false); // Done loading
-    setIsPrescriptionModalOpen(true); // Open the modal
   };
 
 
-  // Handler to close the prescription modal
   const closePrescriptionModal = () => {
       setIsPrescriptionModalOpen(false);
       setSelectedAppointmentForPrescription(null);
-      setPrescriptionDataForModal(null); // Clear fetched data when closing
+      setPrescriptionDataForModal(null);
+      setPatientRecordsForPrescription([]);
   };
 
   // Handler to save prescription (Calls Backend POST endpoint)
@@ -245,7 +233,8 @@ function DoctorAllAppointments() {
           onClose={closePrescriptionModal}
           appointmentInfo={selectedAppointmentForPrescription}
           onSave={handleSavePrescription}
-          existingData={prescriptionDataForModal} // Pass fetched data here
+          existingData={prescriptionDataForModal}
+          patientRecords={patientRecordsForPrescription}
       />
 
     </div>
