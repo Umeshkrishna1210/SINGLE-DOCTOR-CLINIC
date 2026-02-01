@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import axios from "axios";
 import dayjs from "dayjs";
+import { API_BASE } from "../config";
 
 const WORK_START_HOUR = 11;
 const WORK_END_HOUR = 19;
@@ -26,7 +27,7 @@ function AppointmentSystem() {
     if (!token) return;
     setIsLoading(true); 
     try {
-      const res = await axios.get("http://localhost:5000/appointments", {
+      const res = await axios.get(`${API_BASE}/appointments`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       // Sort appointments by date when fetching
@@ -91,7 +92,7 @@ function AppointmentSystem() {
         // --- 1. Perform Booking POST ---
         // Now expect the new appointment object in the response data
         const postResponse = await axios.post( 
-          "http://localhost:5000/appointments/book",
+          `${API_BASE}/appointments/book`,
           { appointment_date: appointmentDateTime },
           { headers: { Authorization: `Bearer ${token}` } }
         );
@@ -148,7 +149,7 @@ function AppointmentSystem() {
       setIsCancelling(appointmentId); // Set cancelling state for this specific appointment
       try {
         // Call the backend endpoint to delete the appointment
-        await axios.delete(`http://localhost:5000/appointments/cancel/${appointmentId}`, {
+        await axios.delete(`${API_BASE}/appointments/cancel/${appointmentId}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
 

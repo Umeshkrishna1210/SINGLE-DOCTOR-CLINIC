@@ -2,6 +2,7 @@ import React, { useContext, useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { UserContext } from "../context/UserContext";
 import axios from "axios";
+import { API_BASE } from "../config";
 import PatientDetailsModal from './PatientDetailsModal';
 import AddPrescriptionModal from './AddPrescriptionModal'; // Import the modal
 import dayjs from 'dayjs';
@@ -51,7 +52,7 @@ function DoctorDashboard() {
       if (!token) return;
       setIsLoadingAppointments(true);
       try {
-        const res = await axios.get("http://localhost:5000/appointments", {
+        const res = await axios.get(`${API_BASE}/appointments`, {
           headers: { Authorization: `Bearer ${token}` },
         });
          const sortedAppointments = res.data.sort((a, b) =>
@@ -71,8 +72,8 @@ function DoctorDashboard() {
       setAvailabilityLoading(true); setAvailabilityError('');
       try {
         const [daysRes, slotsRes] = await Promise.all([
-          axios.get("http://localhost:5000/availability/blocked/days", { headers: { Authorization: `Bearer ${token}` } }),
-          axios.get("http://localhost:5000/availability/blocked/slots", { headers: { Authorization: `Bearer ${token}` } })
+          axios.get(`${API_BASE}/availability/blocked/days`, { headers: { Authorization: `Bearer ${token}` } }),
+          axios.get(`${API_BASE}/availability/blocked/slots`, { headers: { Authorization: `Bearer ${token}` } })
         ]);
         setBlockedDays(daysRes.data.map(d => d.block_date).sort());
         setBlockedSlots(slotsRes.data.map(s => s.slot_datetime).sort());
@@ -98,7 +99,7 @@ function DoctorDashboard() {
       setIsLoadingPatientModal(true);
       setPatientModalData({ profile: null, records: [] });
       try {
-        const response = await axios.get(`http://localhost:5000/patient/profile-and-records/${patientId}`, {
+        const response = await axios.get(`${API_BASE}/patient/profile-and-records/${patientId}`, {
             headers: { Authorization: `Bearer ${token}` }
         });
         setPatientModalData({ profile: response.data.profile, records: response.data.records });
@@ -135,8 +136,8 @@ function DoctorDashboard() {
     try {
       // Fetch prescription and records BEFORE opening modal so form is pre-filled
       const [prescRes, recordsRes] = await Promise.all([
-        axios.get(`http://localhost:5000/medical-records/for-patient/${appointment.patient_id}`, { headers: { Authorization: `Bearer ${token}` } }).catch(e => ({ response: { status: e.response?.status || 404 } })),
-        axios.get(`http://localhost:5000/patient/profile-and-records/${appointment.patient_id}`, { headers: { Authorization: `Bearer ${token}` } }).catch(() => ({ data: { records: [] } }))
+        axios.get(`${API_BASE}/medical-records/for-patient/${appointment.patient_id}`, { headers: { Authorization: `Bearer ${token}` } }).catch(e => ({ response: { status: e.response?.status || 404 } })),
+        axios.get(`${API_BASE}/patient/profile-and-records/${appointment.patient_id}`, { headers: { Authorization: `Bearer ${token}` } }).catch(() => ({ data: { records: [] } }))
       ]);
       setPrescriptionDataForModal(prescRes.response?.status === 404 ? null : prescRes.data);
       setPatientRecordsForPrescription(recordsRes.data?.records || []);
@@ -165,7 +166,7 @@ function DoctorDashboard() {
       }
       try {
           const response = await axios.post(
-              'http://localhost:5000/medical-records/prescription',
+              `${API_BASE}/medical-records/prescription`,
               prescriptionData, // contains { patientId, appointmentId, diagnosis, medicationList }
               {
                   headers: { Authorization: `Bearer ${token}` }

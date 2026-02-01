@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
+import { API_BASE } from "../config";
 
 // Renamed component for clarity
 function PatientRecordUpload() {
@@ -33,7 +34,7 @@ function PatientRecordUpload() {
       setIsLoadingPatientId(true); // Start loading
       try {
         // Use the /patient endpoint to get the logged-in user's ID
-        const res = await axios.get("http://localhost:5000/patient", { 
+        const res = await axios.get(`${API_BASE}/patient`, { 
           headers: { Authorization: `Bearer ${token}` },
         });
         const patientIdFromApi = res.data.patient_id;
@@ -116,7 +117,7 @@ function PatientRecordUpload() {
 
     try {
       // POST the FormData to the backend medical records endpoint
-      const response = await axios.post("http://localhost:5000/medical-records", formData, {
+      const response = await axios.post(`${API_BASE}/medical-records`, formData, {
         headers: {
           // 'Content-Type': 'multipart/form-data' is set automatically by axios for FormData
           Authorization: `Bearer ${token}`, // Include auth token

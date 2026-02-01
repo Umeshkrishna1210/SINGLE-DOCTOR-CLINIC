@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useContext } from 'react';
 import axios from 'axios';
 import dayjs from 'dayjs';
+import { API_BASE } from '../config';
 import { UserContext } from '../context/UserContext'; // To get current user info
 
 // Define working hours boundaries (these could eventually be fetched/set)
@@ -36,8 +37,8 @@ function DoctorSettings() {
       setAvailabilityError('');
       try {
         const [daysRes, slotsRes] = await Promise.all([
-          axios.get("http://localhost:5000/availability/blocked/days", { headers: { Authorization: `Bearer ${token}` } }),
-          axios.get("http://localhost:5000/availability/blocked/slots", { headers: { Authorization: `Bearer ${token}` } })
+          axios.get(`${API_BASE}/availability/blocked/days`, { headers: { Authorization: `Bearer ${token}` } }),
+          axios.get(`${API_BASE}/availability/blocked/slots`, { headers: { Authorization: `Bearer ${token}` } })
         ]);
         setBlockedDays(daysRes.data.map(d => d.block_date).sort()); 
         setBlockedSlots(slotsRes.data.map(s => s.slot_datetime).sort()); 
@@ -63,7 +64,7 @@ function DoctorSettings() {
      if (blockedDays.includes(blockDayDate)) { setAvailabilityError("This day is already blocked."); return; }
      setAvailabilityLoading(true); setAvailabilityError('');
      try {
-       const res = await axios.post("http://localhost:5000/availability/block/day",{ block_date: blockDayDate }, { headers: { Authorization: `Bearer ${token}` } });
+       const res = await axios.post(`${API_BASE}/availability/block/day`,{ block_date: blockDayDate }, { headers: { Authorization: `Bearer ${token}` } });
        setBlockedDays(prev => [...prev, res.data.block_date].sort());
        setBlockDayDate(''); 
      } catch (err) { setAvailabilityError(err.response?.data?.error || "Failed to block day."); } 
@@ -74,7 +75,7 @@ function DoctorSettings() {
      if (!confirmUnblock) return;
      setAvailabilityLoading(true); setAvailabilityError('');
      try {
-       await axios.delete("http://localhost:5000/availability/unblock/day",{ headers: { Authorization: `Bearer ${token}` }, data: { block_date: dateToUnblock } });
+       await axios.delete(`${API_BASE}/availability/unblock/day`,{ headers: { Authorization: `Bearer ${token}` }, data: { block_date: dateToUnblock } });
        setBlockedDays(prev => prev.filter(d => d !== dateToUnblock));
      } catch (err) { setAvailabilityError(err.response?.data?.error || "Failed to unblock day."); } 
      finally { setAvailabilityLoading(false); }
@@ -97,7 +98,7 @@ function DoctorSettings() {
      if (blockedDays.includes(dateTimeToBlock.format('YYYY-MM-DD'))) { setAvailabilityError("Cannot block a slot on a day that is already fully blocked."); return; }
      setAvailabilityLoading(true); setAvailabilityError('');
      try {
-       const res = await axios.post("http://localhost:5000/availability/block/slot",{ slot_datetime: formattedDateTime }, { headers: { Authorization: `Bearer ${token}` } });
+       const res = await axios.post(`${API_BASE}/availability/block/slot`,{ slot_datetime: formattedDateTime }, { headers: { Authorization: `Bearer ${token}` } });
        setBlockedSlots(prev => [...prev, res.data.slot_datetime].sort());
        setBlockSlotDate(''); setBlockSlotTime(''); 
      } catch (err) { setAvailabilityError(err.response?.data?.error || "Failed to block slot."); } 
@@ -109,7 +110,7 @@ function DoctorSettings() {
      if (!confirmUnblock) return;
      setAvailabilityLoading(true); setAvailabilityError('');
      try {
-       await axios.delete("http://localhost:5000/availability/unblock/slot",{ headers: { Authorization: `Bearer ${token}` }, data: { slot_datetime: formattedDateTime } });
+       await axios.delete(`${API_BASE}/availability/unblock/slot`,{ headers: { Authorization: `Bearer ${token}` }, data: { slot_datetime: formattedDateTime } });
        setBlockedSlots(prev => prev.filter(dt => dt !== formattedDateTime));
      } catch (err) { setAvailabilityError(err.response?.data?.error || "Failed to unblock slot."); } 
      finally { setAvailabilityLoading(false); }
