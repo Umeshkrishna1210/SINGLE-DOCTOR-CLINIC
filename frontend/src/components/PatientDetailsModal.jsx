@@ -1,11 +1,34 @@
-import React from 'react';
-import dayjs from 'dayjs'; // Import dayjs for formatting dates
+import React, { useState } from 'react';
+import dayjs from 'dayjs';
+import axios from 'axios';
+import { API_BASE } from '../config';
 
 function PatientDetailsModal({ isOpen, onClose, data, isLoading }) {
+  const [viewingFile, setViewingFile] = useState(null);
   if (!isOpen) return null;
 
-  // Data now contains { profile: {...}, records: [...] }
-  const { profile, records } = data || {}; 
+  const { profile, records } = data || {};
+  const token = localStorage.getItem('token');
+
+  const handleViewFile = async (url) => {
+    if (!url || typeof url !== 'string' || !url.startsWith('/uploads/')) return;
+    setViewingFile(url);
+    try {
+      const res = await axios.get(`${API_BASE}${url}`, {
+        headers: { Authorization: `Bearer ${token}` },
+        responseType: 'blob',
+      });
+      const blobUrl = URL.createObjectURL(res.data);
+      window.open(blobUrl, '_blank');
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
+    } catch (err) {
+      alert('Could not open file. Please try again.');
+    } finally {
+      setViewingFile(null);
+    }
+  };
+
+  const getFileLinks = (arr) => Array.isArray(arr) ? arr.filter((x) => typeof x === 'string' && x.startsWith('/uploads/')) : []; 
 
   return (
     <div style={styles.overlay}> {/* Keep existing overlay style */}
@@ -53,37 +76,54 @@ function PatientDetailsModal({ isOpen, onClose, data, isLoading }) {
                        <p className="mt-2 mb-1"><strong>Medical History:</strong></p>
                        <p className="ml-2 text-gray-800 whitespace-pre-wrap">{record.medical_history || 'N/A'}</p>
 
-                       {/* Display Prescription Links */}
-                       {record.prescriptions && record.prescriptions.length > 0 && (
-                         <div className="mt-3">
-                           <strong className="text-sm font-medium">Prescriptions:</strong>
-                           <ul className="list-disc list-inside ml-4 mt-1">
-                             {record.prescriptions.map((url, index) => (
-                               <li key={`rec-${record.id}-presc-${index}`}>
-                                 <a href={`http://localhost:5000${url}`} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline text-sm">
-                                   View Prescription {index + 1}
-                                 </a>
-                               </li>
-                             ))}
-                           </ul>
-                         </div>
-                       )}
-
-                       {/* Display Lab Report Links */}
-                        {record.lab_reports && record.lab_reports.length > 0 && (
-                         <div className="mt-3">
-                           <strong className="text-sm font-medium">Lab Reports:</strong>
-                           <ul className="list-disc list-inside ml-4 mt-1">
-                             {record.lab_reports.map((url, index) => (
-                               <li key={`rec-${record.id}-lab-${index}`}>
-                                 <a href={`http://localhost:5000${url}`} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline text-sm">
-                                   View Lab Report {index + 1}
-                                 </a>
-                               </li>
-                             ))}
-                           </ul>
-                         </div>
-                       )}
+                       {/* Display Prescription / Lab Report Files (patient uploads only - string paths) */}
+                       {(() => {
+                         const prescFiles = getFileLinks(record.prescriptions);
+                         const labFiles = getFileLinks(record.lab_reports);
+                         if (prescFiles.length === 0 && labFiles.length === 0) return null;
+                         return (
+                           <div className="mt-3 space-y-2">
+                             {prescFiles.length > 0 && (
+                               <div>
+                                 <strong className="text-sm font-medium">Uploaded Prescriptions:</strong>
+                                 <ul className="list-disc list-inside ml-4 mt-1">
+                                   {prescFiles.map((url, index) => (
+                                     <li key={`rec-${record.id}-presc-${index}`}>
+                                       <button
+                                         type="button"
+                                         onClick={() => handleViewFile(url)}
+                                         disabled={viewingFile === url}
+                                         className="text-blue-600 hover:underline text-sm text-left"
+                                       >
+                                         {viewingFile === url ? 'Opening...' : (url.split('/').pop() || `Prescription ${index + 1}`)}
+                                       </button>
+                                     </li>
+                                   ))}
+                                 </ul>
+                               </div>
+                             )}
+                             {labFiles.length > 0 && (
+                               <div>
+                                 <strong className="text-sm font-medium">Uploaded Lab Reports:</strong>
+                                 <ul className="list-disc list-inside ml-4 mt-1">
+                                   {labFiles.map((url, index) => (
+                                     <li key={`rec-${record.id}-lab-${index}`}>
+                                       <button
+                                         type="button"
+                                         onClick={() => handleViewFile(url)}
+                                         disabled={viewingFile === url}
+                                         className="text-blue-600 hover:underline text-sm text-left"
+                                       >
+                                         {viewingFile === url ? 'Opening...' : (url.split('/').pop() || `Lab Report ${index + 1}`)}
+                                       </button>
+                                     </li>
+                                   ))}
+                                 </ul>
+                               </div>
+                             )}
+                           </div>
+                         );
+                       })()}
                     </li>
                   ))}
                 </ul>
