@@ -1,6 +1,8 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useContext } from "react";
+import { useNavigate, Link } from "react-router-dom";
 import axios from "axios";
+import { UserContext } from "../context/UserContext";
+import { API_BASE } from "../config";
 
 function Register() {
   const [name, setName] = useState("");
@@ -9,23 +11,28 @@ function Register() {
   const [role, setRole] = useState("patient");
   const [error, setError] = useState("");
   const navigate = useNavigate();
+  const { login } = useContext(UserContext) || {};
 
   const handleRegister = async (e) => {
     e.preventDefault();
     setError("");
 
     try {
-      const response = await axios.post("http://localhost:5000/auth/register", {
+      const response = await axios.post(`${API_BASE}/auth/register`, {
         name,
         email,
         password,
         role,
       });
 
-      alert(response.data.message);
-      navigate("/login");
+      const { token, refreshToken, user: userData } = response.data;
+      if (login && token && userData) {
+        login({ token, refreshToken, user: userData });
+        navigate(userData.role === "doctor" ? "/doctor-dashboard" : "/patient-dashboard", { replace: true });
+      } else {
+        navigate("/login");
+      }
     } catch (err) {
-      // Show validation details if available (e.g. "Password must contain...")
       const data = err.response?.data;
       let msg = data?.error || "Registration failed";
       if (data?.details && Array.isArray(data.details)) {
@@ -70,6 +77,9 @@ function Register() {
           Register
         </button>
       </form>
+      <p className="text-center text-sm mt-4 text-gray-600">
+        Already have an account? <Link to="/login" className="text-blue-600 hover:underline">Login here</Link>
+      </p>
     </div>
   );
 }

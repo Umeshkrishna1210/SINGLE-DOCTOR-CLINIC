@@ -128,7 +128,19 @@ function PatientDashboard() {
 
   // Handler to navigate to the record upload page
   const handleGoToUpload = () => {
-    navigate("/upload-record"); // Navigate to the route defined in App.jsx
+    navigate("/upload-record");
+  };
+
+  const handleDeleteRecord = async (recordId) => {
+    if (!window.confirm("Are you sure you want to delete this medical record? This cannot be undone.")) return;
+    try {
+      await axios.delete(`${API_BASE}/medical-records/${recordId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setDetailedRecords((prev) => prev.filter((r) => r.id !== recordId));
+    } catch (err) {
+      alert(err.response?.data?.error || "Failed to delete record.");
+    }
   };
 
   const [searchRecords, setSearchRecords] = useState("");
@@ -335,9 +347,17 @@ function PatientDashboard() {
         ) : filteredRecords.length > 0 ? (
           <ul className="space-y-4">
             {filteredRecords.map((record) => (
-              <li key={record.id} className="p-4 rounded-lg border border-gray-200 bg-gray-50">
-                {/* Record Metadata */}
-                <p className="text-xs text-gray-500 mb-2">Recorded on: {dayjs(record.created_at).format('YYYY-MM-DD HH:mm')}</p>
+              <li key={record.id} className="p-4 rounded-lg border border-gray-200 bg-gray-50 relative">
+                <div className="flex justify-between items-start mb-2">
+                  <p className="text-xs text-gray-500">Recorded on: {dayjs(record.created_at).format('YYYY-MM-DD HH:mm')}</p>
+                  <button
+                    onClick={() => handleDeleteRecord(record.id)}
+                    className="text-red-600 hover:text-red-800 text-sm font-medium"
+                    title="Delete record"
+                  >
+                    Delete
+                  </button>
+                </div>
                 {/* Record Details */}
                 <div className="space-y-2">
                   <div>
@@ -422,7 +442,6 @@ function PatientDashboard() {
                     </div>
                   )}
                 </div>
-                {/* --- End Files Section --- */}
               </li>
             ))}
           </ul>

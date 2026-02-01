@@ -4,8 +4,7 @@ import dayjs from 'dayjs'; // For displaying appointment date
 // Simple unique ID generator for list keys - reset in useEffect
 let nextMedicationId = 1;
 
-// Add 'existingData' prop to the function signature
-function AddPrescriptionModal({ isOpen, onClose, appointmentInfo, onSave, existingData }) {
+function AddPrescriptionModal({ isOpen, onClose, appointmentInfo, onSave, existingData, patientRecords = [] }) {
   // State for the list of medications { id, name, timings }
   const [medications, setMedications] = useState([]); // Initialize empty, useEffect will populate
   // State for overall diagnosis/notes
@@ -149,6 +148,23 @@ function AddPrescriptionModal({ isOpen, onClose, appointmentInfo, onSave, existi
               <p className="text-sm"><strong>Patient:</strong> {appointmentInfo.patientName} (ID: {appointmentInfo.patient_id})</p>
               <p className="text-sm"><strong>Appointment:</strong> {dayjs(appointmentInfo.appointment_date).format("ddd, MMM D, YYYY - h:mm A")}</p>
           </div>
+
+          {/* Patient Medical Records - for doctor's reference (exclude doctor prescription records) */}
+          {Array.isArray(patientRecords) && patientRecords.filter(r => r.problem || r.previous_medications || r.medical_history).length > 0 && (
+            <div className="mb-4 p-3 bg-amber-50 rounded border border-amber-200">
+              <h4 className="text-sm font-semibold text-gray-800 mb-2">Patient&apos;s Medical Records</h4>
+              <div className="max-h-40 overflow-y-auto space-y-2">
+                {patientRecords.filter(r => r.problem || r.previous_medications || r.medical_history).map((rec, idx) => (
+                  <div key={rec.id || idx} className="text-xs border-b border-amber-100 pb-2 last:border-0">
+                    <p className="text-gray-500">{dayjs(rec.created_at).format('YYYY-MM-DD')}</p>
+                    <p><strong>Problem:</strong> {(rec.problem || 'N/A').substring(0, 100)}{(rec.problem && rec.problem.length > 100) ? '...' : ''}</p>
+                    <p><strong>Previous meds:</strong> {(rec.previous_medications || 'N/A').substring(0, 80)}{(rec.previous_medications && rec.previous_medications.length > 80) ? '...' : ''}</p>
+                    <p><strong>History:</strong> {(rec.medical_history || 'N/A').substring(0, 80)}{(rec.medical_history && rec.medical_history.length > 80) ? '...' : ''}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Optional Diagnosis/Notes */}
           <div>
