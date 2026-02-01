@@ -6,5 +6,8 @@ PRODUCTION_READINESS_CHECKLIST.md
 frontend/.env
 README.md
 mediSyncDB-migration-prescription.sql
-mediSyncDB.sql
+
 DATABASE_SETUP_GUIDE.md  
+.env.example
+DEPLOYMENT_GUIDE.md
+FIXES_APPLIED.md

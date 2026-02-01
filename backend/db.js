@@ -34,6 +34,7 @@ pool.getConnection((err, connection) => {
 
     console.log("✅ Connected to MySQL Database!");
 
+    if (process.env.NODE_ENV !== 'production') {
     try {
         const schemaPath = path.join(process.cwd(), "mediSyncDB.sql");
         const schema = fs.readFileSync(schemaPath, "utf8");
@@ -42,12 +43,14 @@ pool.getConnection((err, connection) => {
             if (schemaErr) {
                 console.error("❌ Schema execution failed:", schemaErr.message);
             } else {
-                console.log("✅ Database schema initialized");
+                console.log("✅ Database schema initialized (dev only)");
             }
         });
     } catch (e) {
         console.error("❌ Failed to load schema.sql:", e.message);
     }
+}
+
 
     connection.release();
 });
