@@ -1,66 +1,55 @@
 const mysql = require("mysql2");
-require("dotenv").config(); // Load environment variables from .env file
+const fs = require("fs");
+const path = require("path");
+require("dotenv").config();
 
 // Validate required environment variables
-const requiredEnvVars = ['DB_HOST', 'DB_USER', 'DB_PASSWORD', 'DB_NAME', 'JWT_SECRET'];
-const missingEnvVars = requiredEnvVars.filter(varName => !process.env[varName]);
+const requiredEnvVars = ['DB_HOST', 'DB_USER', 'DB_PASSWORD', 'DB_NAME'];
+const missingEnvVars = requiredEnvVars.filter(v => !process.env[v]);
 
 if (missingEnvVars.length > 0) {
-    console.error("❌ Missing required environment variables:", missingEnvVars.join(', '));
-    console.error("Please check your .env file");
+    console.error("❌ Missing env vars:", missingEnvVars.join(", "));
     process.exit(1);
 }
 
-// --- Create MySQL Connection Pool (Better for production) ---
+// Create pool
 const pool = mysql.createPool({
-    host: process.env.DB_HOST, 
-    user: process.env.DB_USER, 
-    password: process.env.DB_PASSWORD, 
+    host: process.env.DB_HOST,
+    user: process.env.DB_USER,
+    password: process.env.DB_PASSWORD,
     database: process.env.DB_NAME,
     port: process.env.DB_PORT || 3306,
     waitForConnections: true,
     connectionLimit: 10,
     queueLimit: 0,
-    enableKeepAlive: true,
-    keepAliveInitialDelay: 0,
     multipleStatements: true
 });
 
-// Connection retry logic
-const MAX_RETRIES = 5;
-const RETRY_DELAY_MS = 3000;
+// --- TEST CONNECTION + RUN SCHEMA ---
+pool.getConnection((err, connection) => {
+    if (err) {
+        console.error("❌ Database connection failed:", err.message);
+        process.exit(1);
+    }
 
-function testConnection(retries = 0) {
-    pool.getConnection((err, connection) => {
-        if (err) {
-            if (retries < MAX_RETRIES) {
-                console.warn(`❌ Database connection failed (attempt ${retries + 1}/${MAX_RETRIES}): ${err.message}. Retrying in ${RETRY_DELAY_MS / 1000}s...`);
-                setTimeout(() => testConnection(retries + 1), RETRY_DELAY_MS);
+    console.log("✅ Connected to MySQL Database!");
+
+    try {
+        const schemaPath = path.join(process.cwd(), "schema.sql");
+        const schema = fs.readFileSync(schemaPath, "utf8");
+
+        pool.query(schema, (schemaErr) => {
+            if (schemaErr) {
+                console.error("❌ Schema execution failed:", schemaErr.message);
             } else {
-                console.error("❌ Database connection failed after max retries. Exiting...");
-                process.exit(1);
+                console.log("✅ Database schema initialized");
             }
-            return;
-        }
-        console.log("✅ Connected to MySQL Database!");
-        connection.release();
-    });
-}
-testConnection();
+        });
+    } catch (e) {
+        console.error("❌ Failed to load schema.sql:", e.message);
+    }
 
-// Handle pool errors
-pool.on('error', (err) => {
-    console.error('❌ Database pool error:', err);
-    if (err.code === 'PROTOCOL_CONNECTION_LOST') {
-        console.error('Database connection was closed.');
-    }
-    if (err.code === 'ER_CON_COUNT_ERROR') {
-        console.error('Database has too many connections.');
-    }
-    if (err.code === 'ECONNREFUSED') {
-        console.error('Database connection was refused.');
-    }
+    connection.release();
 });
 
-// --- Export the connection pool ---
-module.exports = pool; 
+module.exports = pool;
