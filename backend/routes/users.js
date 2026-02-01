@@ -34,12 +34,7 @@ router.get("/:userId", authMiddleware, userIdValidation, (req, res) => {
 });
 
 router.put("/profile", authMiddleware, profileUpdateValidation, async (req, res) => {
-    // Only doctors can update their profile via this route for now
-    if (req.user.role !== 'doctor') {
-        return res.status(403).json({ error: "Access denied." });
-    }
-
-    const doctorId = req.user.id;
+    const userId = req.user.id;
     const { name, email, currentPassword, newPassword } = req.body;
 
     // Basic validation
@@ -49,9 +44,7 @@ router.put("/profile", authMiddleware, profileUpdateValidation, async (req, res)
 
     try {
         const dbPromise = db.promise();
-
-        // Fetch current user data (including password hash)
-        const [users] = await dbPromise.query("SELECT * FROM users WHERE id = ?", [doctorId]);
+        const [users] = await dbPromise.query("SELECT * FROM users WHERE id = ?", [userId]);
         if (users.length === 0) {
             return res.status(404).json({ error: "User not found." });
         }
@@ -71,14 +64,13 @@ router.put("/profile", authMiddleware, profileUpdateValidation, async (req, res)
             }
             // Hash the new password
             passwordToUpdate = await bcrypt.hash(newPassword, 10);
-            console.log(`Updating password for user ID: ${doctorId}`); // Log password update attempt
         }
         // --- End Password Change Logic ---
 
         // --- Update User in Database ---
         const [updateResult] = await dbPromise.query(
             "UPDATE users SET name = ?, email = ?, password = ? WHERE id = ?",
-            [name, email, passwordToUpdate, doctorId]
+            [name, email, passwordToUpdate, userId]
         );
 
         if (updateResult.affectedRows === 0) {
@@ -88,10 +80,10 @@ router.put("/profile", authMiddleware, profileUpdateValidation, async (req, res)
 
         // Prepare updated user data to send back (exclude password)
         const updatedUserInfo = {
-            id: doctorId,
+            id: userId,
             name: name,
             email: email,
-            role: currentUser.role // Role doesn't change here
+            role: currentUser.role
         };
 
         // Note: If email change affects JWT payload, might need to issue a new token

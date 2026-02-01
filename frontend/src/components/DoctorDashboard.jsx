@@ -23,6 +23,11 @@ function DoctorDashboard() {
   const [appointments, setAppointments] = useState([]);
   const [isLoadingAppointments, setIsLoadingAppointments] = useState(false);
 
+  const [blockedDays, setBlockedDays] = useState([]);
+  const [blockedSlots, setBlockedSlots] = useState([]);
+  const [availabilityLoading, setAvailabilityLoading] = useState(false);
+  const [availabilityError, setAvailabilityError] = useState('');
+
   // State for Patient Details Modal
   const [isPatientModalOpen, setIsPatientModalOpen] = useState(false);
   const [selectedPatientIdForDetails, setSelectedPatientIdForDetails] = useState(null);
