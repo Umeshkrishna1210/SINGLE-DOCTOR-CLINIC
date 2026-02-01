@@ -20,6 +20,10 @@ const storage = multer.diskStorage({
     cb(null, uniqueSuffix + "-" + safeOriginalName); 
   },
 });
+// PDF magic bytes check for content validation (prevents spoofed MIME)
+const pdfMagicBytes = Buffer.from([0x25, 0x50, 0x44, 0x46]); // %PDF
+const isPdfContent = (buffer) => buffer && buffer.length >= 4 && pdfMagicBytes.equals(buffer.slice(0, 4));
+
 const upload = multer({ 
   storage: storage,
   fileFilter: (req, file, cb) => { 
@@ -40,15 +44,27 @@ router.post("/", authMiddleware, (req, res) => {
   if (req.user.role !== 'patient') { return res.status(403).json({ error: "Access denied." }); }
   const patient_id = req.user.id; 
   
-  upload(req, res, function (err) { // Keep async for cleanup if needed
-    if (err) { /* ... multer error handling ... */ 
-        console.error("Multer error:", err.message);
+  upload(req, res, function (err) {
+    if (err) {
         return res.status(400).json({ error: `File upload error: ${err.message}` });
     }
     const { problem, previousMedications, medicalHistory } = req.body;
-    if (!problem || !previousMedications || !medicalHistory) { /* ... validation & cleanup ... */ 
-        if (req.files) { /* ... cleanup logic ... */ }
+    if (!problem || !previousMedications || !medicalHistory) {
         return res.status(400).json({ error: "Problem, Previous Medications, and Medical History are required." });
+    }
+    // Validate uploaded files are genuine PDFs (content verification)
+    const allFiles = [...(req.files?.prescriptions || []), ...(req.files?.labReports || [])];
+    for (const file of allFiles) {
+      try {
+        const buffer = fs.readFileSync(file.path).slice(0, 4);
+        if (!isPdfContent(buffer)) {
+          allFiles.forEach(f => { try { fs.unlinkSync(f.path); } catch (_) {} });
+          return res.status(400).json({ error: "Invalid file content. Only valid PDF files are allowed." });
+        }
+      } catch (readErr) {
+        allFiles.forEach(f => { try { fs.unlinkSync(f.path); } catch (_) {} });
+        return res.status(500).json({ error: "Failed to validate uploaded files." });
+      }
     }
     const prescriptionFiles = req.files?.prescriptions || [];
     const labReportFiles = req.files?.labReports || [];

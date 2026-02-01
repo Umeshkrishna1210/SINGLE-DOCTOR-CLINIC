@@ -1,18 +1,19 @@
-import React, { useContext } from "react"; 
-import { Routes, Route, useLocation, Navigate } from "react-router-dom"; // Import Navigate
+import React, { useContext, lazy, Suspense } from "react";
+import { Routes, Route, useLocation, Navigate } from "react-router-dom";
 import Navbar from "./components/Navbar";
-import Sidebar from "./components/Sidebar"; // Import Sidebar component
+import Sidebar from "./components/Sidebar";
 import Login from "./components/Login";
 import Register from "./components/Register";
-import './App.css'; // Ensure this path is correct
-import PatientDashboard from "./components/PatientDashboard";
-import DoctorDashboard from "./components/DoctorDashboard";
-import AppointmentSystem from "./components/AppointmentSystem";
-import DoctorAllAppointments from "./components/DoctorAllAppointments";
-import DoctorSettings from "./components/DoctorSettings";
-import PatientRecordUpload from './components/PatientRecordUpload';
-// import MedicalRecords from "./components/MedicalRecords"; // Uncomment if used
-import { UserContext } from './context/UserContext'; // Import UserContext
+import "./App.css";
+import { UserContext } from "./context/UserContext";
+
+const PatientDashboard = lazy(() => import("./components/PatientDashboard"));
+const DoctorDashboard = lazy(() => import("./components/DoctorDashboard"));
+const AppointmentSystem = lazy(() => import("./components/AppointmentSystem"));
+const DoctorAllAppointments = lazy(() => import("./components/DoctorAllAppointments"));
+const DoctorSettings = lazy(() => import("./components/DoctorSettings"));
+const PatientRecordUpload = lazy(() => import("./components/PatientRecordUpload"));
+const PatientSettings = lazy(() => import("./components/PatientSettings"));
 
 function App() {
   // Get user data from context
@@ -53,12 +54,8 @@ function App() {
         {/* Sidebar should have fixed width (e.g., w-60), full height (h-full), and flex-shrink-0 */}
         {showSidebar && <Sidebar />}
 
-        {/* Main Content Area */}
-        {/* Takes remaining horizontal space (flex-grow) */}
-        {/* Allows internal vertical scrolling (overflow-y-auto) */}
-        {/* Sets padding and background color */}
-        <main className="flex-grow p-6 overflow-y-auto bg-white"> 
-          {/* Define application routes */}
+        <main className="flex-grow p-6 overflow-y-auto bg-white dark:bg-gray-900">
+          <Suspense fallback={<div className="flex items-center justify-center p-12"><p className="text-gray-500">Loading...</p></div>}>
           <Routes>
             
             {/* Public Routes */}
@@ -69,7 +66,7 @@ function App() {
             <Route path="/patient-dashboard" element={<PatientDashboard />} />
             <Route path="/book-appointment" element={<AppointmentSystem />} />
             <Route path="/upload-record" element={<PatientRecordUpload />} />
-            {/* Add other patient-specific routes here */}
+            <Route path="/patient/settings" element={<PatientSettings />} />
 
             {/* Doctor Routes */}
             <Route path="/doctor-dashboard" element={<DoctorDashboard />} />
@@ -79,10 +76,8 @@ function App() {
             {/* Default Route Handler for '/' */}
             <Route path="/" element={<DefaultRoute />} />
 
-            {/* Optional: Catch-all route to redirect undefined paths */}
-            {/* <Route path="*" element={<Navigate to="/" replace />} /> */}
-
           </Routes>
+          </Suspense>
         </main>
       </div>
     </div>

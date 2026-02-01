@@ -17,6 +17,7 @@ const validate = (req, res, next) => {
 const registerValidation = [
     body('name')
         .trim()
+        .escape()
         .notEmpty().withMessage('Name is required')
         .isLength({ min: 2, max: 100 }).withMessage('Name must be between 2 and 100 characters'),
     body('email')
@@ -63,14 +64,17 @@ const appointmentValidation = [
 const medicalRecordValidation = [
     body('problem')
         .trim()
+        .escape()
         .notEmpty().withMessage('Problem description is required')
         .isLength({ max: 1000 }).withMessage('Problem description too long'),
     body('previousMedications')
         .trim()
+        .escape()
         .notEmpty().withMessage('Previous medications field is required')
         .isLength({ max: 1000 }).withMessage('Previous medications description too long'),
     body('medicalHistory')
         .trim()
+        .escape()
         .notEmpty().withMessage('Medical history is required')
         .isLength({ max: 2000 }).withMessage('Medical history too long'),
     validate
@@ -109,6 +113,7 @@ const userIdValidation = [
 const profileUpdateValidation = [
     body('name')
         .trim()
+        .escape()
         .notEmpty().withMessage('Name is required')
         .isLength({ min: 2, max: 100 }).withMessage('Name must be between 2 and 100 characters'),
     body('email')

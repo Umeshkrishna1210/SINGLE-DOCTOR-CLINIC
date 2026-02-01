@@ -7,8 +7,10 @@ import AddPrescriptionModal from './AddPrescriptionModal'; // Import the modal c
 
 function DoctorAllAppointments() {
   const [appointments, setAppointments] = useState([]);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
 
   // State for Patient Details Modal
   const [isPatientModalOpen, setIsPatientModalOpen] = useState(false);
@@ -138,8 +140,11 @@ function DoctorAllAppointments() {
           throw new Error(error.response?.data?.error || "Failed to save prescription. Please try again.");
       }
   };
-  // --- End Prescription Handling ---
-
+  const filteredAppointments = appointments.filter((apt) => {
+    const matchesSearch = !searchTerm || (apt.patientName || "").toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesStatus = statusFilter === "all" || apt.status === statusFilter;
+    return matchesSearch && matchesStatus;
+  });
 
   return (
     <div className="p-4">
@@ -147,12 +152,33 @@ function DoctorAllAppointments() {
 
       {error && <p className="text-red-600 bg-red-100 p-3 rounded mb-4">{error}</p>}
 
+      <div className="mb-4 flex flex-wrap gap-2">
+        <input
+          type="text"
+          placeholder="Search by patient name..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="border rounded px-3 py-1.5 text-sm"
+        />
+        <select
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value)}
+          className="border rounded px-3 py-1.5 text-sm"
+        >
+          <option value="all">All Status</option>
+          <option value="pending">Pending</option>
+          <option value="confirmed">Confirmed</option>
+          <option value="completed">Completed</option>
+          <option value="cancelled">Cancelled</option>
+        </select>
+      </div>
+
       {isLoading ? (
         <p className="text-gray-500 text-center mt-10">Loading appointments...</p>
-      ) : appointments.length > 0 ? (
+      ) : filteredAppointments.length > 0 ? (
         <div className="bg-white p-4 sm:p-6 rounded-lg shadow">
           <ul className="space-y-4">
-            {appointments.map((appointment) => (
+            {filteredAppointments.map((appointment) => (
               <li
                 key={appointment.id}
                 className="border rounded p-4 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4"
@@ -200,7 +226,9 @@ function DoctorAllAppointments() {
           </ul>
         </div>
       ) : (
-        <p className="text-gray-500 italic text-center mt-10">No appointments found.</p>
+        <p className="text-gray-500 italic text-center mt-10">
+          {appointments.length > 0 ? "No appointments match your filters." : "No appointments found."}
+        </p>
       )}
 
       {/* Render Patient Details Modal */}

@@ -9,33 +9,24 @@ function Login() {
   const [error, setError] = useState("");
   const navigate = useNavigate();
 
-  // --- Get setUser from context ---
-  const { setUser } = useContext(UserContext);
+  const { login } = useContext(UserContext) || {};
+  const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
   const handleLogin = async (e) => {
     e.preventDefault();
     setError("");
 
-    // Ensure setUser is available from context provider
-    if (!setUser) {
-      console.error("Login Error: setUser context function is unavailable.");
+    if (!login) {
       setError("An internal error occurred. Please try again later.");
       return;
     }
 
     try {
-      const response = await axios.post("http://localhost:5000/auth/login", {
-        email,
-        password,
-      });
+      const response = await axios.post(`${API_BASE}/auth/login`, { email, password });
+      const { user: loggedInUser, token, refreshToken } = response.data;
 
-      const { user: loggedInUser, token } = response.data;
+      login({ token, refreshToken, user: loggedInUser });
 
-      localStorage.setItem("token", token); // Store the new token
-
-      setUser(loggedInUser);
-
-      // Redirect based on role
       navigate(loggedInUser.role === "doctor" ? "/doctor-dashboard" : "/patient-dashboard");
     } catch (err) {
       console.error("Login API failed:", err);

@@ -3,8 +3,8 @@ const cors = require("cors");
 const dotenv = require("dotenv");
 const helmet = require("helmet");
 const rateLimit = require("express-rate-limit");
+const logger = require("./utils/logger");
 
-// Load environment variables
 dotenv.config();
 
 const db = require("./db");
@@ -61,48 +61,56 @@ const authLimiter = rateLimit({
 app.use('/api/', limiter); // Apply to all API routes
 app.use('/auth/', authLimiter); // Stricter limit for auth routes
 
-// Body Parser
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// Serve uploaded files with authentication
-app.use('/uploads', authMiddleware, express.static('uploads')); 
-
-// Default route
-app.get("/", (req, res) => {
-    res.send("MediSync Backend is Running!");
+// Request logging
+app.use((req, res, next) => {
+    const start = Date.now();
+    res.on('finish', () => {
+        logger.info({ method: req.method, path: req.path, status: res.statusCode, duration: Date.now() - start });
+    });
+    next();
 });
 
-// Database connection test route
+app.use('/uploads', authMiddleware, express.static('uploads'));
+
+app.get("/", (req, res) => res.send("MediSync Backend is Running!"));
+
+// Health check for monitoring
+app.get("/health", (req, res) => {
+    db.query("SELECT 1", (err) => {
+        if (err) return res.status(503).json({ status: "unhealthy", database: "disconnected" });
+        res.json({ status: "healthy", database: "connected" });
+    });
+});
+
 app.get("/test-db", (req, res) => {
     db.query("SELECT 1", (err, result) => {
-        if (err) {
-            return res.status(500).json({ error: "Database not connected!" });
-        }
+        if (err) return res.status(500).json({ error: "Database not connected!" });
         res.json({ message: "Database connected successfully!" });
     });
 });
 
-// Use authentication routes
+// API v1 routes
+const apiV1 = express.Router();
+apiV1.use("/auth", authRoutes);
+apiV1.use("/appointments", appointmentRoutes);
+apiV1.use("/medical-records", medicalRecordRoutes);
+apiV1.use("/users", userRoutes);
+apiV1.use("/availability", availabilityRoutes);
+apiV1.use("/schedule", scheduleRoutes);
+apiV1.use("/patient", patientRoutes);
+app.use("/api/v1", apiV1);
+
+// Legacy routes (backward compatibility)
 app.use("/auth", authRoutes);
-
-// Use appointment routes
 app.use("/appointments", appointmentRoutes);
-
-// Use medical records routes
 app.use("/medical-records", medicalRecordRoutes);
-
-// Use users routes
-app.use('/users', userRoutes);
-
-// Use availability routes
-app.use('/availability', availabilityRoutes); 
-
-// Use schedule routes
-app.use('/schedule', scheduleRoutes); 
-
-// Use patient routes
-app.use('/patient', patientRoutes);
+app.use("/users", userRoutes);
+app.use("/availability", availabilityRoutes);
+app.use("/schedule", scheduleRoutes);
+app.use("/patient", patientRoutes);
 
 // 404 Handler
 app.use((req, res) => {
@@ -112,31 +120,28 @@ app.use((req, res) => {
 // Error Handling Middleware (must be last)
 app.use(errorHandler);
 
-// Graceful Shutdown
 const PORT = process.env.PORT || 5000;
 const server = app.listen(PORT, () => {
-    console.log(`🚀 Server running on port ${PORT}`);
-    console.log(`📝 Environment: ${process.env.NODE_ENV || 'development'}`);
+    logger.info({ port: PORT, env: process.env.NODE_ENV || 'development' }, 'Server running');
 });
 
-// Handle graceful shutdown
 process.on('SIGTERM', () => {
-    console.log('SIGTERM signal received: closing HTTP server');
+    logger.info('SIGTERM signal received: closing HTTP server');
     server.close(() => {
-        console.log('HTTP server closed');
+        logger.info('HTTP server closed');
         db.end(() => {
-            console.log('Database pool closed');
+            logger.info('Database pool closed');
             process.exit(0);
         });
     });
 });
 
 process.on('SIGINT', () => {
-    console.log('\nSIGINT signal received: closing HTTP server');
+    logger.info('SIGINT signal received: closing HTTP server');
     server.close(() => {
-        console.log('HTTP server closed');
+        logger.info('HTTP server closed');
         db.end(() => {
-            console.log('Database pool closed');
+            logger.info('Database pool closed');
             process.exit(0);
         });
     });

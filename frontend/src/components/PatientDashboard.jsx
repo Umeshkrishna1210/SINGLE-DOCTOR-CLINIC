@@ -1,8 +1,11 @@
 import React, { useContext, useEffect, useState } from "react";
-import { UserContext } from "../context/UserContext"; // For user context
-import { useNavigate } from "react-router-dom"; // For navigation
-import axios from "axios"; // For API calls
-import dayjs from "dayjs"; // For date formatting
+import { UserContext } from "../context/UserContext";
+import { useNavigate } from "react-router-dom";
+import axios from "axios";
+import dayjs from "dayjs";
+import AppointmentCalendar from "./AppointmentCalendar";
+import { API_BASE } from "../config";
+import { exportRecordsToCSV, exportRecordsToPDF } from "../utils/exportRecords";
 
 function PatientDashboard() {
   // Get user info from context
@@ -35,7 +38,7 @@ function PatientDashboard() {
       if (!token) return;
       setIsLoadingAppointments(true);
       try {
-        const res = await axios.get("http://localhost:5000/appointments", {
+        const res = await axios.get(`${API_BASE}/appointments`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         // Sort appointments by date ASC
@@ -58,7 +61,7 @@ function PatientDashboard() {
       setRecordsError('');
       try {
         // Use the endpoint that fetches records for the logged-in patient
-        const res = await axios.get("http://localhost:5000/patient/detailed-records", {
+        const res = await axios.get(`${API_BASE}/patient/detailed-records`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         // console.log("Fetched Detailed Records Data:", res.data); // Keep for debugging if needed
@@ -84,7 +87,7 @@ function PatientDashboard() {
       setIsLoadingPrescription(true); setPrescriptionError('');
       try {
         // Call the backend endpoint
-        const res = await axios.get("http://localhost:5000/medical-records/myprescriptions", {
+        const res = await axios.get(`${API_BASE}/medical-records/myprescriptions`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         // Backend now sends a single object or null
@@ -128,10 +131,24 @@ function PatientDashboard() {
     navigate("/upload-record"); // Navigate to the route defined in App.jsx
   };
 
-  // Handler to cancel an appointment
+  const [searchRecords, setSearchRecords] = useState("");
+
+  const now = dayjs();
+  const upcomingAppointments = appointments.filter((a) => dayjs(a.appointment_date).isAfter(now));
+  const pastAppointments = appointments.filter((a) => dayjs(a.appointment_date).isSameOrBefore(now));
+
+  const filteredRecords = searchRecords
+    ? detailedRecords.filter(
+        (r) =>
+          (r.problem || "").toLowerCase().includes(searchRecords.toLowerCase()) ||
+          (r.medical_history || "").toLowerCase().includes(searchRecords.toLowerCase()) ||
+          (r.previous_medications || "").toLowerCase().includes(searchRecords.toLowerCase())
+      )
+    : detailedRecords;
+
   const handleCancelAppointment = async (id) => {
     // Find appointment details for confirmation message
-    const appointmentToCancel = appointments.find(appt => appt.id === id);
+    const appointmentToCancel = upcomingAppointments.find((appt) => appt.id === id);
     if (!appointmentToCancel) return;
 
     const formattedTime = dayjs(appointmentToCancel.appointment_date).format("h:mm A");
@@ -143,11 +160,11 @@ function PatientDashboard() {
 
     try {
       // Send delete request to backend
-      await axios.delete(`http://localhost:5000/appointments/cancel/${id}`, {
+      await axios.delete(`${API_BASE}/appointments/cancel/${id}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       // Remove appointment from local state immediately
-      setAppointments((prev) => prev.filter((appt) => appt.id !== id));
+      setAppointments((prev) => prev.filter((a) => a.id !== id));
       alert("Appointment cancelled successfully!"); // Provide feedback
     } catch (err) {
       console.error("Error cancelling appointment", err);
@@ -164,9 +181,15 @@ function PatientDashboard() {
         <p className="mt-1 text-gray-600">Manage your appointments and medical records here.</p>
       </div>
 
+      {/* Calendar View */}
+      <section className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow-md border border-gray-200 dark:border-gray-700">
+        <h3 className="text-xl font-semibold mb-4 text-gray-700 dark:text-gray-200">Appointment Calendar</h3>
+        <AppointmentCalendar appointments={appointments} />
+      </section>
+
       {/* Appointments Section */}
-      <section className="bg-white p-4 sm:p-6 rounded-lg shadow-md border border-gray-200">
-        <h3 className="text-xl font-semibold mb-4 text-gray-700">Appointments</h3>
+      <section className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow-md border border-gray-200 dark:border-gray-700">
+        <h3 className="text-xl font-semibold mb-4 text-gray-700 dark:text-gray-200">Appointments</h3>
         {/* Button to book new appointment */}
         <button
           onClick={handleBookAppointment}
@@ -175,13 +198,12 @@ function PatientDashboard() {
           Book New Appointment
         </button>
 
-        {/* Upcoming Appointments List */}
-        <h4 className="text-lg font-medium mb-3 text-gray-600">Upcoming</h4>
+        <h4 className="text-lg font-medium mb-3 text-gray-600 dark:text-gray-400">Upcoming</h4>
         {isLoadingAppointments ? (
-          <p className="text-gray-500">Loading appointments...</p>
-        ) : appointments.length > 0 ? (
+          <p className="text-gray-500 dark:text-gray-400">Loading appointments...</p>
+        ) : upcomingAppointments.length > 0 ? (
           <ul className="space-y-3">
-            {appointments.map((appointment) => (
+            {upcomingAppointments.map((appointment) => (
               <li
                 key={appointment.id}
                 className="flex flex-col sm:flex-row justify-between items-start sm:items-center border p-3 rounded shadow-sm bg-gray-50"
@@ -209,7 +231,26 @@ function PatientDashboard() {
             ))}
           </ul>
         ) : (
-          <p className="text-gray-500 italic">No upcoming appointments scheduled.</p>
+          <p className="text-gray-500 dark:text-gray-400 italic">No upcoming appointments scheduled.</p>
+        )}
+
+        <h4 className="text-lg font-medium mt-6 mb-3 text-gray-600 dark:text-gray-400">Appointment History</h4>
+        {pastAppointments.length > 0 ? (
+          <ul className="space-y-3">
+            {pastAppointments.slice(0, 10).map((appointment) => (
+              <li key={appointment.id} className="flex flex-col sm:flex-row justify-between items-start sm:items-center border dark:border-gray-600 p-3 rounded shadow-sm bg-gray-50 dark:bg-gray-800">
+                <span className="font-medium text-gray-800 dark:text-gray-200">
+                  {dayjs(appointment.appointment_date).format("ddd, MMM D, YYYY - h:mm A")}
+                </span>
+                <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${appointment.status === "confirmed" ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-800"}`}>
+                  {appointment.status}
+                </span>
+              </li>
+            ))}
+            {pastAppointments.length > 10 && <p className="text-sm text-gray-500">Showing last 10</p>}
+          </ul>
+        ) : (
+          <p className="text-gray-500 dark:text-gray-400 italic">No past appointments.</p>
         )}
       </section>
 
@@ -220,8 +261,11 @@ function PatientDashboard() {
           <p className="text-gray-500">Loading prescription...</p>
         ) : prescriptionError ? (
           <p className="text-red-600 bg-red-100 p-3 rounded">{prescriptionError}</p>
-        ) : prescription ? ( // Check if prescription object exists
-          <div className="p-4 rounded-lg border border-gray-200 bg-blue-50">
+        ) : prescription ? (
+          <div className="p-4 rounded-lg border border-gray-200 dark:border-gray-600 bg-blue-50 dark:bg-blue-900/20 print-prescription">
+            <button onClick={() => window.print()} className="no-print mb-2 text-sm text-blue-600 hover:underline">
+              🖨️ Print Prescription
+            </button>
             <p className="text-sm mb-2"><strong>Prescribed by:</strong> Dr. {prescription.doctorName}</p>
             {prescription.diagnosisNotes && (
               <div className="mb-2">
@@ -251,23 +295,46 @@ function PatientDashboard() {
       {/* Medical Records Section */}
       <section className="bg-white p-4 sm:p-6 rounded-lg shadow-md border border-gray-200">
         <h3 className="text-xl font-semibold mb-4 text-gray-700">Medical Records</h3>
-        {/* Button to upload new record */}
-        <button
-          onClick={handleGoToUpload}
-          className="mb-4 bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition-colors text-sm font-medium"
-        >
-          Upload New Record / Files
-        </button>
+        <div className="mb-4 flex flex-wrap gap-2">
+          <button
+            onClick={handleGoToUpload}
+            className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition-colors text-sm font-medium"
+          >
+            Upload New Record / Files
+          </button>
+          <button
+            onClick={() => exportRecordsToCSV(detailedRecords, user?.name)}
+            disabled={detailedRecords.length === 0}
+            className="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700 disabled:opacity-50 transition-colors text-sm font-medium"
+          >
+            Export CSV
+          </button>
+          <button
+            onClick={() => exportRecordsToPDF(detailedRecords, user?.name)}
+            disabled={detailedRecords.length === 0}
+            className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 disabled:opacity-50 transition-colors text-sm font-medium"
+          >
+            Export PDF
+          </button>
+        </div>
 
-        {/* Records History List */}
-        <h4 className="text-lg font-medium mb-3 text-gray-600">Your Uploaded History</h4>
+        <div className="mb-3 flex items-center gap-2">
+          <input
+            type="text"
+            placeholder="Search records..."
+            value={searchRecords}
+            onChange={(e) => setSearchRecords(e.target.value)}
+            className="border dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded px-3 py-1.5 text-sm w-48"
+          />
+        </div>
+        <h4 className="text-lg font-medium mb-3 text-gray-600 dark:text-gray-400">Your Uploaded History</h4>
         {isLoadingRecords ? (
           <p className="text-gray-500">Loading records history...</p>
         ) : recordsError ? (
           <p className="text-red-600 bg-red-100 p-3 rounded">{recordsError}</p>
-        ) : detailedRecords.length > 0 ? (
+        ) : filteredRecords.length > 0 ? (
           <ul className="space-y-4">
-            {detailedRecords.map((record) => (
+            {filteredRecords.map((record) => (
               <li key={record.id} className="p-4 rounded-lg border border-gray-200 bg-gray-50">
                 {/* Record Metadata */}
                 <p className="text-xs text-gray-500 mb-2">Recorded on: {dayjs(record.created_at).format('YYYY-MM-DD HH:mm')}</p>
@@ -303,7 +370,7 @@ function PatientDashboard() {
                               <li key={`rec-${record.id}-presc-${index}`} className="text-sm">
                                 <a
                                   // Construct the full URL assuming backend serves from /uploads
-                                  href={`http://localhost:5000${url}`}
+                                  href={`${API_BASE}${url}`}
                                   target="_blank"
                                   rel="noopener noreferrer"
                                   className="text-blue-600 hover:underline hover:text-blue-800"
@@ -336,7 +403,7 @@ function PatientDashboard() {
                             url && typeof url === 'string' ? (
                               <li key={`rec-${record.id}-lab-${index}`} className="text-sm">
                                 <a
-                                  href={`http://localhost:5000${url}`}
+                                  href={`${API_BASE}${url}`}
                                   target="_blank"
                                   rel="noopener noreferrer"
                                   className="text-blue-600 hover:underline hover:text-blue-800"
@@ -360,7 +427,9 @@ function PatientDashboard() {
             ))}
           </ul>
         ) : (
-          <p className="text-gray-500 italic">No detailed medical records have been uploaded yet.</p>
+          <p className="text-gray-500 dark:text-gray-400 italic">
+            {searchRecords ? "No matching records found." : "No detailed medical records have been uploaded yet."}
+          </p>
         )}
       </section>
 

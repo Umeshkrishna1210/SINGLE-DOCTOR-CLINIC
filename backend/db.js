@@ -25,20 +25,27 @@ const pool = mysql.createPool({
     keepAliveInitialDelay: 0
 });
 
-// Test the connection pool
-pool.getConnection((err, connection) => {
-    if (err) {
-        console.error("❌ Database connection failed: " + err.message);
-        console.error("➡️ Host:", process.env.DB_HOST);
-        console.error("➡️ User:", process.env.DB_USER);
-        console.error("➡️ DB Name:", process.env.DB_NAME);
-        console.error("➡️ Port:", process.env.DB_PORT || 3306);
-        console.error("Exiting application...");
-        process.exit(1);
-    }
-    console.log("✅ Connected to MySQL Database!");
-    connection.release(); // Release the test connection back to the pool
-});
+// Connection retry logic
+const MAX_RETRIES = 5;
+const RETRY_DELAY_MS = 3000;
+
+function testConnection(retries = 0) {
+    pool.getConnection((err, connection) => {
+        if (err) {
+            if (retries < MAX_RETRIES) {
+                console.warn(`❌ Database connection failed (attempt ${retries + 1}/${MAX_RETRIES}): ${err.message}. Retrying in ${RETRY_DELAY_MS / 1000}s...`);
+                setTimeout(() => testConnection(retries + 1), RETRY_DELAY_MS);
+            } else {
+                console.error("❌ Database connection failed after max retries. Exiting...");
+                process.exit(1);
+            }
+            return;
+        }
+        console.log("✅ Connected to MySQL Database!");
+        connection.release();
+    });
+}
+testConnection();
 
 // Handle pool errors
 pool.on('error', (err) => {

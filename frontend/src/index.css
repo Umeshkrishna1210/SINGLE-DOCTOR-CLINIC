@@ -1,1 +1,10 @@
 @import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* Print-friendly styles - hide nav, sidebar, buttons when printing */
+@media print {
+  nav, .sidebar, button, .no-print { display: none !important; }
+  main { padding: 0 !important; }
+  .print-prescription { break-inside: avoid; }
+}
