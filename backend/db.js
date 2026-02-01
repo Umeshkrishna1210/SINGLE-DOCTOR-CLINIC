@@ -35,7 +35,7 @@ pool.getConnection((err, connection) => {
     console.log("✅ Connected to MySQL Database!");
 
     try {
-        const schemaPath = path.join(process.cwd(), "schema.sql");
+        const schemaPath = path.join(process.cwd(), "mediSyncDB.sql");
         const schema = fs.readFileSync(schemaPath, "utf8");
 
         pool.query(schema, (schemaErr) => {
