@@ -7,10 +7,12 @@ function Register() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [role, setRole] = useState("patient");
+  const [error, setError] = useState("");
   const navigate = useNavigate();
 
   const handleRegister = async (e) => {
     e.preventDefault();
+    setError("");
 
     try {
       const response = await axios.post("http://localhost:5000/auth/register", {
@@ -23,7 +25,14 @@ function Register() {
       alert(response.data.message);
       navigate("/login");
     } catch (err) {
-      alert(err.response?.data?.error || "Registration failed");
+      // Show validation details if available (e.g. "Password must contain...")
+      const data = err.response?.data;
+      let msg = data?.error || "Registration failed";
+      if (data?.details && Array.isArray(data.details)) {
+        const detailMsg = data.details.map((d) => d.msg || d.message).join(". ");
+        if (detailMsg) msg = detailMsg;
+      }
+      setError(msg);
     }
   };
 
@@ -47,11 +56,12 @@ function Register() {
         />
         <input
           type="password"
-          placeholder="Password"
+          placeholder="Password (min 8 chars, 1 uppercase, 1 lowercase, 1 number)"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           className="border p-2 rounded"
         />
+        {error && <p className="text-red-500 text-sm">{error}</p>}
         <select value={role} onChange={(e) => setRole(e.target.value)} className="border p-2 rounded">
           <option value="patient">Patient</option>
           <option value="doctor">Doctor</option>
